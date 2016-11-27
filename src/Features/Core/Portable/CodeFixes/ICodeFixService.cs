@@ -10,9 +10,10 @@ namespace Microsoft.CodeAnalysis.CodeFixes
 {
     internal interface ICodeFixService
     {
-        Task<FirstDiagnosticResult> GetFirstDiagnosticWithFixAsync(Document document, TextSpan textSpan, bool considerSuppressionFixes, CancellationToken cancellationToken);
+        Task<FirstDiagnosticResult> GetFirstDiagnosticWithFixAsync(Document document, TextSpan textSpan, bool considerSuppressionFixes, TaskScheduler foregroundTaskScheduler, CancellationToken cancellationToken);
 
-        Task<ImmutableArray<CodeFixCollection>> GetFixesAsync(Document document, TextSpan textSpan, bool includeSuppressionFixes, CancellationToken cancellationToken);
+        Task<ImmutableArray<CodeFixCollection>> GetFixesAsync(Document document, TextSpan textSpan, bool includeSuppressionFixes, TaskScheduler foregroundTaskScheduler, CancellationToken cancellationToken);
+
         CodeFixProvider GetSuppressionFixer(string language, IEnumerable<string> diagnosticIds);
     }
 }

@@ -247,7 +247,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
 
                     var fixes = Task.Run(
                         () => _owner._codeFixService.GetFixesAsync(
-                                document, range.Span.ToTextSpan(), includeSuppressionFixes, cancellationToken),
+                                document, range.Span.ToTextSpan(), includeSuppressionFixes, ForegroundTaskScheduler, cancellationToken),
                         cancellationToken).WaitAndGetResult(cancellationToken);
 
                     var filteredFixes = FilterOnUIThread(fixes, workspace);
@@ -628,7 +628,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
                     var considerSuppressionFixes = requestedActionCategories.Contains(PredefinedSuggestedActionCategoryNames.Any);
                     var result = await Task.Run(
                         () => provider._codeFixService.GetFirstDiagnosticWithFixAsync(
-                            document, range.Span.ToTextSpan(), considerSuppressionFixes, cancellationToken),
+                            document, range.Span.ToTextSpan(), considerSuppressionFixes, ForegroundTaskScheduler, cancellationToken),
                         cancellationToken).ConfigureAwait(false);
 
                     if (result.HasFix)

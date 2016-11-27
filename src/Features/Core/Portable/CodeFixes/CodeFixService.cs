@@ -22,12 +22,11 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CodeFixes
 {
-    using Editor.Shared.Utilities;
     using DiagnosticId = String;
     using LanguageKind = String;
 
     [Export(typeof(ICodeFixService)), Shared]
-    internal partial class CodeFixService : ForegroundThreadAffinitizedObject, ICodeFixService
+    internal partial class CodeFixService : ICodeFixService
     {
         private readonly IDiagnosticAnalyzerService _diagnosticService;
 
@@ -53,7 +52,6 @@ namespace Microsoft.CodeAnalysis.CodeFixes
             [ImportMany]IEnumerable<Lazy<IErrorLoggerService>> loggers,
             [ImportMany]IEnumerable<Lazy<CodeFixProvider, CodeChangeProviderMetadata>> fixers,
             [ImportMany]IEnumerable<Lazy<ISuppressionFixProvider, CodeChangeProviderMetadata>> suppressionProviders)
-            : base(assertIsForeground: false)
         {
             _errorLoggers = loggers;
             _diagnosticService = service;
@@ -73,7 +71,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes
             _fixAllProviderMap = ImmutableDictionary<object, FixAllProviderInfo>.Empty;
         }
 
-        public async Task<FirstDiagnosticResult> GetFirstDiagnosticWithFixAsync(Document document, TextSpan range, bool considerSuppressionFixes, CancellationToken cancellationToken)
+        public async Task<FirstDiagnosticResult> GetFirstDiagnosticWithFixAsync(Document document, TextSpan range, bool considerSuppressionFixes, TaskScheduler foregroundTaskScheduler, CancellationToken cancellationToken)
         {
             if (document == null || !document.IsOpen())
             {
@@ -99,7 +97,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes
                     //
                     // first approach is simpler, so I will implement that first. if the first approach turns out to be not good enough, then
                     // I will try the second approach which will be more complex but quicker
-                    var hasFix = await ContainsAnyFix(document, diagnostic, considerSuppressionFixes, cancellationToken).ConfigureAwait(false);
+                    var hasFix = await ContainsAnyFix(document, diagnostic, considerSuppressionFixes, foregroundTaskScheduler, cancellationToken).ConfigureAwait(false);
                     if (hasFix)
                     {
                         return new FirstDiagnosticResult(!fullResult, hasFix, diagnostic);
@@ -110,7 +108,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes
             }
         }
 
-        public async Task<ImmutableArray<CodeFixCollection>> GetFixesAsync(Document document, TextSpan range, bool includeSuppressionFixes, CancellationToken cancellationToken)
+        public async Task<ImmutableArray<CodeFixCollection>> GetFixesAsync(Document document, TextSpan range, bool includeSuppressionFixes, TaskScheduler foregroundTaskScheduler, CancellationToken cancellationToken)
         {
             // REVIEW: this is the first and simplest design. basically, when ctrl+. is pressed, it asks diagnostic service to give back
             // current diagnostics for the given span, and it will use that to get fixes. internally diagnostic service will either return cached information 
@@ -354,7 +352,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes
             }
         }
 
-        private async Task<bool> ContainsAnyFix(Document document, DiagnosticData diagnostic, bool considerSuppressionFixes, CancellationToken cancellationToken)
+        private async Task<bool> ContainsAnyFix(Document document, DiagnosticData diagnostic, bool considerSuppressionFixes, TaskScheduler foregroundTaskScheduler, CancellationToken cancellationToken)
         {
             ImmutableArray<CodeFixProvider> workspaceFixers = ImmutableArray<CodeFixProvider>.Empty;
             bool hasAnySharedFixer = _workspaceFixersMap.TryGetValue(document.Project.Language, out var fixerMap) && fixerMap.Value.TryGetValue(diagnostic.Id, out workspaceFixers);
@@ -428,11 +426,9 @@ namespace Microsoft.CodeAnalysis.CodeFixes
                     // to make that check.
                     var applicable = await Task.Factory.StartNew(() =>
                         {
-                            this.AssertIsForeground();
                             return fix.Action.IsApplicable(document.Project.Solution.Workspace);
                         },
-                        cancellationToken, TaskCreationOptions.None, this.ForegroundTaskScheduler).ConfigureAwait(false);
-                    this.AssertIsBackground();
+                        cancellationToken, TaskCreationOptions.None, foregroundTaskScheduler).ConfigureAwait(false);
 
                     if (applicable)
                     {
