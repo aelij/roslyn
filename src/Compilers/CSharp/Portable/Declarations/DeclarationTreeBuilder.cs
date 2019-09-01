@@ -176,7 +176,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 kind: _isSubmission ? DeclarationKind.Submission : DeclarationKind.Script,
                 name: fullName.Last(),
                 arity: 0,
-                modifiers: DeclarationModifiers.Internal | DeclarationModifiers.Partial | DeclarationModifiers.Sealed,
+                modifiers: DeclarationModifiers.Public | DeclarationModifiers.Partial | DeclarationModifiers.Sealed,
                 declFlags: declFlags,
                 syntaxReference: parentReference,
                 nameLocation: new SourceLocation(parentReference),

@@ -131,7 +131,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 kind:=If(_isSubmission, DeclarationKind.Submission, DeclarationKind.Script),
                 name:=fullName.Last(),
                 arity:=0,
-                modifiers:=DeclarationModifiers.Friend Or DeclarationModifiers.Partial Or DeclarationModifiers.NotInheritable,
+                modifiers:=DeclarationModifiers.Public Or DeclarationModifiers.Partial Or DeclarationModifiers.NotInheritable,
                 declFlags:=declFlags,
                 syntaxReference:=parentReference,
                 nameLocation:=parentReference.GetLocation(),
